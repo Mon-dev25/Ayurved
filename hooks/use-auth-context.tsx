@@ -1,10 +1,14 @@
 import { createContext, useContext } from 'react'
 
+export type UserRole = 'doctor' | 'patient'
+
 export type AuthData = {
   claims?: Record<string, any> | null
   profile?: any | null
   isLoading: boolean
   isLoggedIn: boolean
+  role?: UserRole | null
+  refreshProfile: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthData>({
@@ -12,6 +16,8 @@ export const AuthContext = createContext<AuthData>({
   profile: undefined,
   isLoading: true,
   isLoggedIn: false,
+  role: null,
+  refreshProfile: async () => {},
 })
 
 export const useAuthContext = () => useContext(AuthContext)

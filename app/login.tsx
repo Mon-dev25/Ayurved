@@ -1,6 +1,7 @@
 import { Link, Stack } from 'expo-router'
 import { StyleSheet } from 'react-native'
 
+import SignOutButton from '@/components/social-auth-buttons/sign-out-button'
 import { ThemedText } from '@/components/themed-text'
 import { ThemedView } from '@/components/themed-view'
 
@@ -13,6 +14,7 @@ export default function LoginScreen() {
         <Link href="/" style={styles.link}>
           <ThemedText type="link">Try to navigate to home screen!</ThemedText>
         </Link>
+        <SignOutButton />
       </ThemedView>
     </>
   )
