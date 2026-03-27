@@ -35,13 +35,6 @@ export default function DoctorTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="posts"
-        options={{
-          title: 'Posts',
-          tabBarIcon: ({ color, size }) => <IconSymbol size={size} name="doc.text.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

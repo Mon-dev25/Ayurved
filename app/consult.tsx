@@ -1,219 +1,422 @@
-import { useDoctorContext } from '@/hooks/use-doctor-context';
-import { supabase } from '@/lib/supabase.web';
-import { useEffect, useState } from 'react';
-import {
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { useRouter } from 'expo-router'
+import { useEffect, useState } from 'react'
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-export default function Consult() {
-  const { selectedDoctor } = useDoctorContext();
+import { useDoctorContext } from '@/hooks/use-doctor-context'
+import { supabase } from '@/lib/supabase.web'
 
-  const [email, setEmail] = useState('');
-  const [phoneno, setPhoneno] = useState('');
-  const [name, setName] = useState('');
-  const [title, setTitle] = useState('Therapist');
+const TINT = '#6050D0'
 
-  const handleEmail = () => Linking.openURL(`mailto:${email}`);
-  const handlePhone = () => Linking.openURL(`tel:${phoneno}`);
+export default function ConsultScreen() {
+  const insets = useSafeAreaInsets()
+  const router = useRouter()
+  const { selectedDoctor } = useDoctorContext()
+
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [name, setName] = useState('')
 
   useEffect(() => {
-    if (!selectedDoctor) return;
-
+    if (!selectedDoctor) return
     const fetch = async () => {
       const { data } = await supabase
         .from('profiles')
         .select('email,phone,full_name')
         .eq('id', selectedDoctor.id)
-        .single();
-
+        .single()
       if (data) {
-        setEmail(data.email);
-        setPhoneno(data.phone);
-        setName(data.full_name);
+        setEmail(data.email)
+        setPhone(data.phone)
+        setName(data.full_name)
       }
-    };
-
-    fetch();
-  }, [selectedDoctor?.id]);
+    }
+    fetch()
+  }, [selectedDoctor?.id])
 
   return (
-    <ScrollView style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={{ fontSize: 30 }}>👩‍⚕️</Text>
+    <View style={styles.root}>
+      {/* Colored header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.headerTop}>
+          <Pressable style={styles.backBtn} onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Consult Doctor</Text>
+          <View style={{ width: 40 }} />
         </View>
 
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.specialty}>{title}</Text>
+        {/* Avatar + name */}
+        <View style={styles.profileWrap}>
+          <View style={styles.avatar}>
+            <MaterialIcons name="person" size={40} color={TINT} />
+          </View>
+          <Text style={styles.doctorName}>{name || 'Doctor'}</Text>
+          <Text style={styles.doctorTitle}>Ayurvedic Practitioner</Text>
 
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.iconBtn} onPress={handlePhone}>
-            <Text style={styles.icon}>📞</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconBtn} onPress={handleEmail}>
-            <Text style={styles.icon}>💬</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* CONTENT CARD */}
-      <View style={styles.card}>
-        {/* About */}
-        <Text style={styles.sectionTitle}>About doctor</Text>
-        <Text style={styles.sectionText}>
-          {name} is an experienced specialist who is constantly working on improving skills.
-        </Text>
-
-        {/* Reviews */}
-        <View style={styles.reviewHeader}>
-          <Text style={styles.sectionTitle}>Reviews ⭐ 4.9 (124)</Text>
-          <Text style={styles.link}>See all</Text>
-        </View>
-
-        <View style={styles.reviewCard}>
-          <Text style={styles.reviewName}>User Review</Text>
-          <Text style={styles.reviewText}>
-            Many thanks to {name}! Professional and competent doctor.
-          </Text>
-        </View>
-
-        {/* Location */}
-        <Text style={styles.sectionTitle}>Location</Text>
-        <View style={styles.locationRow}>
-          <Text style={styles.locationIcon}>📍</Text>
-          <View>
-            <Text style={styles.locationTitle}>Medical Center</Text>
-            <Text style={styles.locationSub}>Your clinic address here</Text>
+          {/* Action buttons */}
+          <View style={styles.actions}>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => Linking.openURL(`tel:${phone}`)}
+            >
+              <MaterialIcons name="phone" size={20} color="#fff" />
+              <Text style={styles.actionText}>Call</Text>
+            </Pressable>
+            <Pressable
+              style={styles.actionBtn}
+              onPress={() => Linking.openURL(`mailto:${email}`)}
+            >
+              <MaterialIcons name="email" size={20} color="#fff" />
+              <Text style={styles.actionText}>Email</Text>
+            </Pressable>
           </View>
         </View>
       </View>
-    </ScrollView>
-  );
+
+      {/* White card */}
+      <View style={styles.card}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Stats row */}
+          <View style={styles.statsRow}>
+            {[
+              { label: 'Patients', value: '200+' },
+              { label: 'Experience', value: '5 Yrs' },
+              { label: 'Rating', value: '4.9 ⭐' },
+            ].map((s) => (
+              <View key={s.label} style={styles.statItem}>
+                <Text style={styles.statValue}>{s.value}</Text>
+                <Text style={styles.statLabel}>{s.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* About */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>About</Text>
+            <Text style={styles.sectionText}>
+              {name || 'The doctor'} is an experienced Ayurvedic practitioner specializing in holistic wellness,
+              chronic disease management, and lifestyle disorders. Constantly working to provide
+              personalized care for every patient.
+            </Text>
+          </View>
+
+          {/* Contact */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Contact</Text>
+            <View style={styles.sectionCard}>
+              <Pressable
+                style={styles.contactRow}
+                onPress={() => Linking.openURL(`tel:${phone}`)}
+              >
+                <View style={styles.contactIcon}>
+                  <MaterialIcons name="phone" size={20} color={TINT} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.contactLabel}>Phone</Text>
+                  <Text style={styles.contactValue}>{phone || '—'}</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color="#C4C4C4" />
+              </Pressable>
+
+              <View style={styles.rowDivider} />
+
+              <Pressable
+                style={styles.contactRow}
+                onPress={() => Linking.openURL(`mailto:${email}`)}
+              >
+                <View style={styles.contactIcon}>
+                  <MaterialIcons name="email" size={20} color={TINT} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.contactLabel}>Email</Text>
+                  <Text style={styles.contactValue}>{email || '—'}</Text>
+                </View>
+                <MaterialIcons name="chevron-right" size={20} color="#C4C4C4" />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Reviews */}
+          <View style={styles.section}>
+            {/* <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Reviews</Text>
+              <Pressable>
+                <Text style={styles.seeAll}>See all</Text>
+              </Pressable>
+            </View> */}
+            {/* To do: add reviews */}
+            {/* <View style={styles.reviewCard}>
+              <View style={styles.reviewTop}>
+                <View style={styles.reviewAvatar}>
+                  <MaterialIcons name="person" size={18} color={TINT} />
+                </View>
+                <View>
+                  <Text style={styles.reviewName}>Patient</Text>
+                  <Text style={styles.reviewStars}>⭐⭐⭐⭐⭐</Text>
+                </View>
+              </View>
+              <Text style={styles.reviewText}>
+                Many thanks to {name || 'the doctor'}! Very professional and caring.
+                Highly recommend for Ayurvedic consultations.
+              </Text>
+            </View> */}
+          </View>
+
+          {/* Location */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <View style={styles.locationCard}>
+              <View style={styles.contactIcon}>
+                <MaterialIcons name="location-on" size={20} color={TINT} />
+              </View>
+              <View>
+                <Text style={styles.locationTitle}>Ayur Wellness Center</Text>
+                <Text style={styles.locationSub}>Hyderabad, Telangana, India</Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </View>
+  )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: "#f2f2f2",
+    backgroundColor: TINT,
   },
-
   header: {
-    backgroundColor: "#6C63FF",
-    paddingTop: 60,
-    paddingBottom: 30,
-    alignItems: "center",
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileWrap: {
+    alignItems: 'center',
+    gap: 6,
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#E0E0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    marginBottom: 4,
+  },
+  doctorName: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  doctorTitle: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  actionText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  card: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 8,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 16,
+    paddingVertical: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: '#F0F0F0',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A1A2E',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
   },
-
-  name: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#fff",
-  },
-
-  specialty: {
-    fontSize: 14,
-    color: "#ddd",
-    marginBottom: 15,
-  },
-
-  actions: {
-    flexDirection: "row",
-    gap: 20,
-  },
-
-  iconBtn: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    padding: 12,
-    borderRadius: 50,
-  },
-
-  icon: {
-    fontSize: 18,
-    color: "#fff",
-  },
-
-  card: {
-    backgroundColor: "#fff",
-    marginTop: -20,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 20,
-  },
-
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 10,
   },
-
   sectionText: {
-    color: "#555",
-    marginBottom: 20,
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 22,
   },
-
-  reviewHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  seeAll: {
+    color: TINT,
+    fontWeight: '600',
+    fontSize: 13,
   },
-
-  link: {
-    color: "#6C63FF",
-    fontWeight: "600",
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-
-  reviewCard: {
-    backgroundColor: "#f7f7f7",
-    padding: 15,
-    borderRadius: 15,
-    marginVertical: 10,
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 16,
   },
-
-  reviewName: {
-    fontWeight: "600",
-    marginBottom: 5,
+  contactIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-
-  reviewText: {
-    color: "#666",
-  },
-
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 10,
-  },
-
-  locationIcon: {
-    fontSize: 18,
-  },
-
-  locationTitle: {
-    fontWeight: "600",
-  },
-
-  locationSub: {
-    color: "#666",
+  contactLabel: {
     fontSize: 12,
+    color: '#9CA3AF',
   },
-});
+  contactValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A2E',
+    marginTop: 2,
+  },
+  rowDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#F0F0F0',
+    marginHorizontal: 16,
+  },
+  reviewCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  reviewTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A2E',
+  },
+  reviewStars: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  reviewText: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  locationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A2E',
+  },
+  locationSub: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+})

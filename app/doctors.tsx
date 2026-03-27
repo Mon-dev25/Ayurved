@@ -89,7 +89,7 @@ export default function DoctorsScreen() {
             return (
               <Pressable
                 key={doc.id}
-                style={[styles.card, isSelected && styles.cardSelected]}
+                style={[isSelected && styles.cardSelected]}
                 onPress={() => handleSelect(doc)}
               >
                 <View style={styles.cardRow}>
@@ -166,17 +166,17 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    // backgroundColor: '#fff',
+    // borderRadius: 16,
+    // padding: 16,
+    // marginBottom: 12,
+    // borderWidth: 2,
+    // borderColor: 'transparent',
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowOpacity: 0.04,
+    // shadowRadius: 6,
+    // elevation: 1,
   },
   cardSelected: {
     borderColor: BLUE,

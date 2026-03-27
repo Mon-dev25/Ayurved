@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
@@ -33,6 +34,7 @@ function formatDate(iso: string) {
 
 export default function PostsScreen() {
   const insets = useSafeAreaInsets()
+  const router = useRouter()
   const { profile } = useAuthContext()
   const doctorId = profile?.id
 
@@ -117,7 +119,14 @@ export default function PostsScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Text style={styles.headerTitle}>My Articles</Text>
+        <View style={styles.headerLeft}>
+          {router.canGoBack() && (
+            <Pressable onPress={() => router.back()} hitSlop={8}>
+              <MaterialIcons name="arrow-back" size={24} color="#1A1A2E" />
+            </Pressable>
+          )}
+          <Text style={styles.headerTitle}>My Articles</Text>
+        </View>
         <Pressable
           style={styles.addBtn}
           onPress={() => setShowForm(!showForm)}
@@ -238,6 +247,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E7EB',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   headerTitle: {
     fontSize: 22,
     fontWeight: '700',
@@ -255,8 +269,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
   },
-
-  // Form
   formCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -303,8 +315,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-
-  // Empty
   emptyWrap: {
     alignItems: 'center',
     marginTop: 80,
@@ -319,8 +329,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
   },
-
-  // Cards
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,

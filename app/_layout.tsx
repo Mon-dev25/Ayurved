@@ -9,12 +9,18 @@ import { useAuthContext } from '@/hooks/use-auth-context'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import AuthProvider from '@/providers/auth-providers'
 import DoctorProvider from '@/providers/doctor-provider'
+import { StripeProvider } from '@stripe/stripe-react-native'
 
 function RootNavigator() {
   const { isLoggedIn, role } = useAuthContext()
 
   return (
-    <Stack>
+            <StripeProvider
+          publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
+          merchantIdentifier="merchant.identifier" // required for Apple Pay
+          urlScheme="your-url-scheme" // required for 3D Secure and bank redirects
+        >
+             <Stack>
       <Stack.Protected guard={isLoggedIn && role === 'patient'}>
         <Stack.Screen name="(patient-tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="schedule" options={{ headerShown: false, presentation: 'card' }} />
@@ -34,6 +40,7 @@ function RootNavigator() {
         <Stack.Screen name="doctor-appointments" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="change-password-doc" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="privacy-settings-doc" options={{ headerShown: false, presentation: 'card' }} />
+        <Stack.Screen name="posts" options={{ headerShown: false, presentation: 'card' }} />
       </Stack.Protected>
       <Stack.Protected guard={isLoggedIn}>
         <Stack.Screen name="help-support" options={{ headerShown: false, presentation: 'card' }} />
@@ -44,6 +51,8 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Screen name="+not-found" />
     </Stack>
+ </StripeProvider>
+ 
   )
 }
 

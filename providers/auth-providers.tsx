@@ -84,6 +84,23 @@ export default function AuthProvider({ children }: PropsWithChildren) {
     setProfile(data)
   }, [fetchProfileForUser])
 
+  supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session?.user) {
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', session.user.id)
+      .maybeSingle()
+
+    if (!existing) {
+      await supabase.from('profiles').upsert({
+        id: session.user.id,
+        full_name: session.user.user_metadata?.full_name ?? null,
+        role: 'patient',
+      })
+    }
+  }
+})
   const isLoggedIn = user != null && user != undefined
   const role: UserRole | null =
     profile?.role || user?.user_metadata?.role || null

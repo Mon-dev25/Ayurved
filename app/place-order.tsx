@@ -1,12 +1,10 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { MaterialIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -16,6 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import RazorpayCheckout from 'react-native-razorpay'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
@@ -49,16 +48,6 @@ const DURATIONS = [
   { key: '2_months' as const, label: '2 Months' },
 ]
 
-// Replace with your merchant UPI ID
-const MERCHANT_UPI_ID = 'merchant@upi'
-const MERCHANT_NAME = 'Ayur Wellness'
-
-const UPI_PAYMENT_METHODS = [
-  { id: 'gpay', label: 'Google Pay', image: require('@/assets/images/gpay.png'), scheme: 'tez' },
-  { id: 'phonepe', label: 'PhonePe', image: require('@/assets/images/phonepe.png'), scheme: 'phonepe' },
-  { id: 'paytm', label: 'Paytm', image: require('@/assets/images/paytm.png'), scheme: 'paytm' },
-] as const
-
 type DurationKey = '7_days' | '15_days' | '1_month' | '2_months'
 
 export default function PlaceOrderScreen() {
@@ -72,123 +61,100 @@ export default function PlaceOrderScreen() {
   const [description, setDescription] = useState('')
   const [selectedDuration, setSelectedDuration] = useState<DurationKey | null>(null)
   const [address, setAddress] = useState('')
-  const [selectedPayment, setSelectedPayment] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
   const [attempted, setAttempted] = useState(false)
 
-  // Card fields
-  const [cardNumber, setCardNumber] = useState('')
-  const [cardExpiry, setCardExpiry] = useState('')
-  const [cardCvv, setCardCvv] = useState('')
-  const [cardName, setCardName] = useState('')
-
-  // Inline validation errors
   const errors = {
     disease: attempted && !selectedDisease,
     duration: attempted && !selectedDuration,
     address: attempted && !address.trim(),
-    payment: attempted && !selectedPayment,
-    cardNumber: attempted && selectedPayment === 'card' && cardNumber.replace(/\s/g, '').length < 16,
-    cardName: attempted && selectedPayment === 'card' && !cardName.trim(),
-    cardExpiry: attempted && selectedPayment === 'card' && cardExpiry.length < 5,
-    cardCvv: attempted && selectedPayment === 'card' && cardCvv.length < 3,
   }
 
   const fees = selectedDoctor?.medicine_price ?? DEFAULT_PRICING
   const price = selectedDuration ? (fees[selectedDuration] ?? 0) : 0
 
-  const buildUpiUrl = (scheme: string, amount: number) => {
-    const params = `pa=${MERCHANT_UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${amount}&cu=INR&tn=${encodeURIComponent('Ayur Medicine Order')}`
-    return `${scheme}://upi/pay?${params}`
-  }
-
-  const openUpiApp = async (scheme: string) => {
-    const url = buildUpiUrl(scheme, price)
-    const canOpen = await Linking.canOpenURL(url)
-    if (canOpen) {
-      await Linking.openURL(url)
-    } else {
-      const genericUrl = `upi://pay?pa=${MERCHANT_UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${price}&cu=INR&tn=${encodeURIComponent('Ayur Medicine Order')}`
-      const canOpenGeneric = await Linking.canOpenURL(genericUrl)
-      if (canOpenGeneric) {
-        await Linking.openURL(genericUrl)
-      } else {
-        Alert.alert('App Not Found', 'The selected payment app is not installed on this device.')
-        return false
-      }
-    }
-    return true
-  }
-
   const handlePlaceOrder = async () => {
     setAttempted(true)
 
-    if (!selectedDisease || !selectedDuration || !address.trim() || !selectedPayment) return
-    if (selectedPayment === 'card') {
-      if (cardNumber.replace(/\s/g, '').length < 16 || !cardName.trim() || cardExpiry.length < 5 || cardCvv.length < 3) return
-    }
+    if (!selectedDisease || !selectedDuration || !address.trim()) return
     if (!profile?.id) return
 
     setPlacing(true)
 
-    const upiMethod = UPI_PAYMENT_METHODS.find((m) => m.id === selectedPayment)
-    if (upiMethod) {
-      const opened = await openUpiApp(upiMethod.scheme)
-      if (!opened) {
-        setPlacing(false)
-        return
-      }
-    }
-
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        patient_id: profile.id,
-        doctor_id: selectedDoctor?.id ?? null,
-        total: price,
-        status: 'placed',
-        delivery_address: address.trim() ? { address: address.trim() } : null,
+    try {
+      // Step 1 — Create Razorpay order
+      const response = await fetch('http://localhost:8081/api/razorpay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: price * 100 }), // ₹ to paise
       })
-      .select()
-      .single()
 
-    if (orderError || !order) {
+      if (!response.ok) throw new Error('Failed to create payment order')
+
+      const { orderId, amount, currency, keyId } = await response.json()
+
+      // Step 2 — Open Razorpay (handles UPI, Cards, Netbanking etc. natively)
+      const paymentData = await RazorpayCheckout.open({
+        description: `Ayur Consultation - ${selectedDisease}`,
+        currency,
+        key: keyId,
+        amount,
+        order_id: orderId,
+        name: 'Ayur Wellness',
+        prefill: {
+          email: profile.email ?? 'patient@example.com',
+          contact: profile.phone ?? '9999999999',
+          name: profile.full_name ?? 'Patient',
+        },
+        theme: { color: BLUE },
+      })
+
+      // Step 3 — Save to Supabase only after successful payment
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          patient_id: profile.id,
+          doctor_id: selectedDoctor?.id ?? null,
+          total: price,
+          status: 'placed',
+          delivery_address: address.trim() ? { address: address.trim() } : null,
+        })
+        .select()
+        .single()
+
+      if (orderError || !order) throw new Error(orderError?.message ?? 'Failed to create order')
+
+      await supabase.from('order_items').insert({
+        order_id: order.id,
+        name: selectedDisease,
+        qty: 1,
+        price,
+        product_id: selectedDuration,
+      })
+
+      await supabase.from('payments').insert({
+        order_id: order.id,
+        patient_id: profile.id,
+        amount: price,
+        provider: 'razorpay',
+        status: 'completed',
+        razorpay_payment_id: paymentData.razorpay_payment_id,
+      })
+
+      Alert.alert(
+        'Order Placed!',
+        `Your order #${order.id} has been placed successfully.`,
+        [{ text: 'OK', onPress: () => router.back() }]
+      )
+    } catch (error: any) {
+      if (error.description) {
+        Alert.alert('Payment Failed', error.description)
+      } else {
+        Alert.alert('Error', error.message ?? 'Something went wrong')
+      }
+    } finally {
       setPlacing(false)
-      Alert.alert('Error', orderError?.message ?? 'Failed to create order.')
-      return
     }
-
-    await supabase.from('order_items').insert({
-      order_id: order.id,
-      name: selectedDisease,
-      qty: 1,
-      price,
-      product_id: selectedDuration,
-    })
-
-    await supabase.from('payments').insert({
-      order_id: order.id,
-      patient_id: profile.id,
-      amount: price,
-      provider: selectedPayment,
-      status: 'completed',
-    })
-
-    setPlacing(false)
-    Alert.alert('Order Placed!', `Your order #${order.id} has been placed successfully.`, [
-      { text: 'OK', onPress: () => router.back() },
-    ])
-  }
-
-  const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\D/g, '').slice(0, 16)
-    return cleaned.replace(/(.{4})/g, '$1 ').trim()
-  }
-
-  const formatExpiry = (text: string) => {
-    const cleaned = text.replace(/\D/g, '').slice(0, 4)
-    if (cleaned.length > 2) return `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`
-    return cleaned
   }
 
   return (
@@ -253,7 +219,9 @@ export default function PlaceOrderScreen() {
               )
             })}
           </View>
-          {errors.duration && <Text style={[styles.errorText, { marginTop: -10 }]}>Please select a duration</Text>}
+          {errors.duration && (
+            <Text style={[styles.errorText, { marginTop: -10 }]}>Please select a duration</Text>
+          )}
 
           {/* Delivery Address */}
           <Text style={styles.sectionTitle}>Delivery Address</Text>
@@ -266,89 +234,8 @@ export default function PlaceOrderScreen() {
             multiline
             textAlignVertical="top"
           />
-          {errors.address && <Text style={[styles.errorText, { marginTop: -12 }]}>Please enter a delivery address</Text>}
-
-          {/* Payment Method */}
-          <Text style={styles.sectionTitle}>Payment Method</Text>
-
-          {/* UPI Apps */}
-          <Text style={styles.subLabel}>UPI</Text>
-          <View style={styles.paymentGrid}>
-            {UPI_PAYMENT_METHODS.map((method) => {
-              const isActive = selectedPayment === method.id
-              return (
-                <Pressable
-                  key={method.id}
-                  style={[styles.paymentCard, isActive && styles.paymentActive]}
-                  onPress={() => setSelectedPayment(method.id)}
-                >
-                  <Image source={method.image} style={styles.paymentLogo} resizeMode="contain" />
-                  <Text style={styles.paymentLabel}>{method.label}</Text>
-                </Pressable>
-              )
-            })}
-          </View>
-
-          {/* Card Option */}
-          <Text style={styles.subLabel}>Card</Text>
-          <Pressable
-            style={[styles.cardOption, selectedPayment === 'card' && styles.cardOptionActive]}
-            onPress={() => setSelectedPayment('card')}
-          >
-            <MaterialIcons name="credit-card" size={24} color={selectedPayment === 'card' ? BLUE : '#6B7280'} />
-            <Text style={styles.cardOptionText}>Credit / Debit Card</Text>
-          </Pressable>
-          {errors.payment && <Text style={styles.errorText}>Please select a payment method</Text>}
-
-          {selectedPayment === 'card' && (
-            <View style={styles.cardForm}>
-              <TextInput
-                style={[styles.cardInput, errors.cardNumber && styles.fieldError]}
-                placeholder="Card Number"
-                placeholderTextColor="#9CA3AF"
-                value={cardNumber}
-                onChangeText={(t) => setCardNumber(formatCardNumber(t))}
-                keyboardType="number-pad"
-                maxLength={19}
-              />
-              {errors.cardNumber && <Text style={styles.errorText}>Enter a valid 16-digit card number</Text>}
-              <TextInput
-                style={[styles.cardInput, errors.cardName && styles.fieldError]}
-                placeholder="Cardholder Name"
-                placeholderTextColor="#9CA3AF"
-                value={cardName}
-                onChangeText={setCardName}
-                autoCapitalize="characters"
-              />
-              {errors.cardName && <Text style={styles.errorText}>Enter the cardholder name</Text>}
-              <View style={styles.cardRow}>
-                <View style={{ flex: 1 }}>
-                  <TextInput
-                    style={[styles.cardInput, errors.cardExpiry && styles.fieldError]}
-                    placeholder="MM/YY"
-                    placeholderTextColor="#9CA3AF"
-                    value={cardExpiry}
-                    onChangeText={(t) => setCardExpiry(formatExpiry(t))}
-                    keyboardType="number-pad"
-                    maxLength={5}
-                  />
-                  {errors.cardExpiry && <Text style={styles.errorText}>Invalid expiry</Text>}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <TextInput
-                    style={[styles.cardInput, errors.cardCvv && styles.fieldError]}
-                    placeholder="CVV"
-                    placeholderTextColor="#9CA3AF"
-                    value={cardCvv}
-                    onChangeText={setCardCvv}
-                    keyboardType="number-pad"
-                    maxLength={4}
-                    secureTextEntry
-                  />
-                  {errors.cardCvv && <Text style={styles.errorText}>Invalid CVV</Text>}
-                </View>
-              </View>
-            </View>
+          {errors.address && (
+            <Text style={[styles.errorText, { marginTop: -12 }]}>Please enter a delivery address</Text>
           )}
 
           {/* Summary */}
@@ -465,8 +352,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 8,
   },
-
-  // Dropdown
   dropdown: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -484,8 +369,6 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     flex: 1,
   },
-
-  // Input
   input: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -503,8 +386,6 @@ const styles = StyleSheet.create({
   addressInput: {
     minHeight: 70,
   },
-
-  // Duration
   durationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -539,101 +420,6 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     marginTop: 4,
   },
-
-  // Payment
-  paymentGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 24,
-  },
-  paymentCard: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  paymentActive: {
-    borderColor: BLUE,
-  },
-  paymentLogo: {
-    width: 40,
-    height: 40,
-    marginBottom: 8,
-  },
-  paymentLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  subLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  cardOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  cardOptionActive: {
-    borderColor: BLUE,
-  },
-  cardOptionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  cardForm: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 24,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  cardInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1A1A2E',
-    backgroundColor: '#FAFAFA',
-  },
-  cardRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-
-  // Summary
   summaryCard: {
     backgroundColor: '#fff',
     borderRadius: 14,
@@ -677,8 +463,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1A1A2E',
   },
-
-  // Place Button
   placeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -694,8 +478,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',

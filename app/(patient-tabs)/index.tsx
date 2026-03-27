@@ -9,13 +9,13 @@ import { useDoctorContext } from '@/hooks/use-doctor-context'
 import { useThemeColor } from '@/hooks/use-theme-color'
 import { supabase } from '@/lib/supabase.web'
 
-const TINT = '#1565C0'
+const TINT = '#6050D0'
 
 const SERVICES = [
-  { key: 'appointment', icon: 'event', label: 'Book\nAppointment', color: '#E8F5E9', iconColor: '#43A047' },
-  { key: 'medicines', icon: 'medication', label: 'Order\nMedicines', color: '#FFF3E0', iconColor: '#FB8C00' },
-  { key: 'articles', icon: 'menu-book', label: 'Health\nArticles', color: '#E3F2FD', iconColor: '#1E88E5' },
-  { key: 'consult', icon: 'phone', label: 'Consult\nDoctor', color: '#FCE4EC', iconColor: '#E53935' },
+  { key: 'appointment', icon: 'event', label: 'Book\nAppointment', color: '#E8F5E9', iconColor: TINT },
+  { key: 'medicines', icon: 'medication', label: 'Order\nMedicines', color: '#FFF3E0', iconColor: TINT },
+  { key: 'articles', icon: 'menu-book', label: 'Health\nArticles', color: '#E3F2FD', iconColor: TINT },
+  { key: 'consult', icon: 'phone', label: 'Consult\nDoctor', color: '#FCE4EC', iconColor: TINT },
 ] as const
 
 type ArticleRow = {
@@ -63,12 +63,14 @@ export default function PatientHomeScreen() {
   }
 
   const handleServicePress = (key: string) => {
-    if (!selectedDoctor && (key === 'appointment' || key === 'articles')) {
+    if (!selectedDoctor && (key === 'appointment' || 'articles' || 'consult' || 'medicines')) {
       router.push('/doctors')
       return
     }
     if (key === 'appointment') router.push('/schedule')
     else if (key === 'articles') router.push('/articles')
+    else if(key === 'consult') router.push('./consult')
+    else if (key === 'medicines') router.navigate('/place-order')
   }
 
   return (
@@ -87,12 +89,6 @@ export default function PatientHomeScreen() {
             <MaterialIcons name="notifications-none" size={24} color={textColor} />
           </Pressable>
         </View>
-
-        {/* Search */}
-        <Pressable style={styles.searchBar}>
-          <MaterialIcons name="search" size={22} color="#9CA3AF" />
-          <Text style={styles.searchPlaceholder}>Search articles, medicines...</Text>
-        </Pressable>
 
         {/* Doctor Card */}
         {selectedDoctor ? (
@@ -117,13 +113,6 @@ export default function PatientHomeScreen() {
                 <Text style={styles.changeText}>Change</Text>
               </Pressable>
             </View>
-            <Pressable
-              style={styles.doctorBookBtn}
-              onPress={() => router.push('/schedule')}
-            >
-              <MaterialIcons name="event" size={18} color={TINT} />
-              <Text style={styles.doctorBookText}>Book Appointment</Text>
-            </Pressable>
           </View>
         ) : (
           <Pressable style={styles.selectDoctorCard} onPress={() => router.push('/doctors')}>

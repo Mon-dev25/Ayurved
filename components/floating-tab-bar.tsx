@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     bottom: 50,
     left: 20,
     right: 20,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   bar: {
     flexDirection: 'row',
@@ -69,12 +69,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 20,
     elevation: 12,
-    width: 300
+    width: 300,
+    justifyContent: 'space-around'
   },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-  },
+ tab: {
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 6,
+  paddingHorizontal: 16,   // controls spacing between icons
+  minWidth: 56,            // ensures each icon has enough room
+}
 })

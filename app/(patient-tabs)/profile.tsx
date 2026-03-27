@@ -6,8 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { supabase } from '@/lib/supabase.web'
 
-const BLUE = '#6050D0'
-const BLUE_LIGHT = '#1E88E5'
+const TINT = '#6050D0'
 
 type MenuItem = {
   key: string
@@ -44,7 +43,7 @@ export default function PatientProfileScreen() {
     >
       <View style={styles.menuLeft}>
         <View style={styles.menuIconWrap}>
-          <MaterialIcons name={item.icon} size={22} color={BLUE} />
+          <MaterialIcons name={item.icon} size={22} color={TINT} />
         </View>
         <Text style={styles.menuLabel}>{item.label}</Text>
       </View>
@@ -54,65 +53,57 @@ export default function PatientProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header gradient */}
-        <View style={[styles.headerWrap, { paddingTop: insets.top + 12 }]}>
-          <View style={styles.headerGradient}>
-            <View style={styles.headerTop}>
-              <Text style={styles.headerTitle}>My Profile</Text>
-              <Pressable style={styles.notifBtn} onPress={() => router.navigate('/notifications')}>
-                <MaterialIcons name="notifications-none" size={24} color="#fff" />
-              </Pressable>
-            </View>
-
-            {/* Avatar */}
-            <View style={styles.avatarRow}>
-              <View style={styles.avatar}>
-                <MaterialIcons name="person" size={40} color={BLUE} />
-              </View>
-            </View>
-          </View>
+      {/* Colored header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <Pressable style={styles.notifBtn} onPress={() => router.navigate('/notifications')}>
+            <MaterialIcons name="notifications-none" size={24} color="#fff" />
+          </Pressable>
         </View>
+        <View style={styles.avatar}>
+          <MaterialIcons name="person" size={40} color={TINT} />
+        </View>
+      </View>
 
-        {/* Name & email below gradient */}
-        <View style={styles.nameSection}>
+      {/* White card */}
+      <View style={styles.card}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+          {/* Name & email */}
           <View style={styles.nameRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.userName}>{profile?.full_name ?? 'User'}</Text>
               <Text style={styles.userEmail}>{profile?.email ?? profile?.username ?? ''}</Text>
             </View>
             <Pressable style={styles.editBtn}>
-              <MaterialIcons name="edit" size={16} color={BLUE} />
+              <MaterialIcons name="edit" size={16} color={TINT} />
               <Text style={styles.editText}>Edit</Text>
             </Pressable>
           </View>
-        </View>
 
-        {/* Account section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.card}>
-            {ACCOUNT_ITEMS.map(renderItem)}
+          {/* Account */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account</Text>
+            <View style={styles.sectionCard}>
+              {ACCOUNT_ITEMS.map(renderItem)}
+            </View>
           </View>
-        </View>
 
-        {/* Settings section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Setting</Text>
-          <View style={styles.card}>
-            {SETTING_ITEMS.map(renderItem)}
+          {/* Settings */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Settings</Text>
+            <View style={styles.sectionCard}>
+              {SETTING_ITEMS.map(renderItem)}
+            </View>
           </View>
-        </View>
 
-        {/* Sign Out */}
-        <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
-          <MaterialIcons name="logout" size={20} color="#EF4444" />
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </Pressable>
-      </ScrollView>
+          {/* Sign Out */}
+          <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
+            <MaterialIcons name="logout" size={20} color="#EF4444" />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
     </View>
   )
 }
@@ -120,18 +111,11 @@ export default function PatientProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: TINT,
   },
-
-  // Header
-  headerWrap: {
-    backgroundColor: BLUE,
-    paddingBottom: 50,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerGradient: {
+  header: {
     paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   headerTop: {
     flexDirection: 'row',
@@ -152,9 +136,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarRow: {
-    alignItems: 'flex-start',
-  },
   avatar: {
     width: 80,
     height: 80,
@@ -165,18 +146,19 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#fff',
   },
-
-  // Name
-  nameSection: {
-    paddingHorizontal: 20,
-    marginTop: -20,
-    marginBottom: 20,
+  card: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
     paddingTop: 28,
+    paddingBottom: 20,
   },
   userName: {
     fontSize: 22,
@@ -198,12 +180,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0F0',
   },
   editText: {
-    color: BLUE,
+    color: TINT,
     fontSize: 13,
     fontWeight: '600',
   },
-
-  // Sections
   section: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -214,7 +194,7 @@ const styles = StyleSheet.create({
     color: '#1A1A2E',
     marginBottom: 10,
   },
-  card: {
+  sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
@@ -251,8 +231,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1A1A2E',
   },
-
-  // Sign Out
   signOutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
