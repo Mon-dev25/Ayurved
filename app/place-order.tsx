@@ -72,7 +72,7 @@ export default function PlaceOrderScreen() {
 
   const fees = selectedDoctor?.medicine_price ?? DEFAULT_PRICING
   const price = selectedDuration ? (fees[selectedDuration] ?? 0) : 0
-
+  const SUPABASE_FUNCTION_URL = 'https://mvhnjvhfoogroolhsutn.supabase.co/functions/v1/quick-handler'
   const handlePlaceOrder = async () => {
     setAttempted(true)
 
@@ -83,11 +83,17 @@ export default function PlaceOrderScreen() {
 
     try {
       // Step 1 — Create Razorpay order
-      const response = await fetch('http://localhost:8081/api/razorpay', {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const response = await fetch(SUPABASE_FUNCTION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: price * 100 }), // ₹ to paise
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ amount: price * 100 }),
       })
+      console.log("🚀 ~ handlePlaceOrder ~ response:", response)
 
       if (!response.ok) throw new Error('Failed to create payment order')
 

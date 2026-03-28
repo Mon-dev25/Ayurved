@@ -1,10 +1,19 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons'
-import { useRouter } from 'expo-router'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { supabase } from '@/lib/supabase.web'
+import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { useRouter } from 'expo-router'
+import { useState } from 'react'
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const TINT = '#6050D0'
 
@@ -26,15 +35,50 @@ const SETTING_ITEMS: MenuItem[] = [
 ]
 
 export default function PatientProfileScreen() {
-  const { profile } = useAuthContext()
+  const { profile, refreshProfile } = useAuthContext()
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const [editing, setEditing] = useState(false)
+  const [fullName, setFullName] = useState(profile?.full_name ?? '')
+  const [email, setEmail] = useState(profile?.email ?? '')
+  const [saving, setSaving] = useState(false)
 
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' })
     router.replace('/modal')
   }
 
+    const handleEdit = () => {
+    setFullName(profile?.full_name ?? '')
+    setEmail(profile?.email ?? '')
+    setEditing(true)
+  }
+
+   const handleCancel = () => {
+    setEditing(false)
+  }
+    const handleSave = async () => {
+      if (!fullName.trim()) {
+        Alert.alert('Missing Name', 'Please enter your full name.')
+        return
+      }
+      if (!profile?.id) return
+  
+      setSaving(true)
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: fullName.trim(), email: email.trim() })
+        .eq('id', profile.id)
+      setSaving(false)
+  
+      if (error) {
+        Alert.alert('Error', error.message)
+        return
+      }
+  
+      await refreshProfile?.()
+      setEditing(false)
+    }
   const renderItem = (item: MenuItem) => (
     <Pressable
       key={item.key}
@@ -75,11 +119,56 @@ export default function PatientProfileScreen() {
               <Text style={styles.userName}>{profile?.full_name ?? 'User'}</Text>
               <Text style={styles.userEmail}>{profile?.email ?? profile?.username ?? ''}</Text>
             </View>
-            <Pressable style={styles.editBtn}>
-              <MaterialIcons name="edit" size={16} color={TINT} />
+               {!editing && (
+            <Pressable style={styles.editBtn} onPress={handleEdit}>
+              <MaterialIcons name="edit" size={15} color='#FFFFFF' />
               <Text style={styles.editText}>Edit</Text>
             </Pressable>
+          )}
           </View>
+
+           {editing && (
+                      <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Edit Profile</Text>
+                        <View style={styles.formCard}>
+                          <Text style={styles.fieldLabel}>Full Name</Text>
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Full name"
+                            placeholderTextColor="#9CA3AF"
+                            value={fullName}
+                            onChangeText={setFullName}
+                            autoCapitalize="words"
+                          />
+                          <Text style={styles.fieldLabel}>Email</Text>
+                          <TextInput
+                            style={styles.input}
+                            placeholder="Email address"
+                            placeholderTextColor="#9CA3AF"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                          />
+                          <View style={styles.formActions}>
+                            <Pressable style={styles.cancelBtn} onPress={handleCancel}>
+                              <Text style={styles.cancelText}>Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                              style={[styles.saveBtn, saving && { opacity: 0.6 }]}
+                              onPress={handleSave}
+                              disabled={saving}
+                            >
+                              {saving ? (
+                                <ActivityIndicator color="#fff" size="small" />
+                              ) : (
+                                <Text style={styles.saveText}>Save Changes</Text>
+                              )}
+                            </Pressable>
+                          </View>
+                        </View>
+                      </View>
+                    )}
 
           {/* Account */}
           <View style={styles.section}>
@@ -247,5 +336,65 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 15,
     fontWeight: '600',
+  },
+   formCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#1A1A2E',
+    backgroundColor: '#FAFAFA',
+    marginBottom: 14,
+  },
+  formActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  cancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#fff',
+  },
+  cancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  saveBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: TINT,
+  },
+  saveText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 })
