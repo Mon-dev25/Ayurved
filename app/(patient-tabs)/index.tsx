@@ -85,9 +85,9 @@ export default function PatientHomeScreen() {
             <Text style={[styles.greeting, { color: subtextColor }]}>Hello,</Text>
             <Text style={[styles.name, { color: textColor }]}>{firstName} 👋</Text>
           </View>
-          <Pressable style={[styles.notifBtn, { backgroundColor: bgColor }]}>
+          {/* <Pressable style={[styles.notifBtn, { backgroundColor: bgColor }]}>
             <MaterialIcons name="notifications-none" size={24} color={textColor} />
-          </Pressable>
+          </Pressable> */}
         </View>
 
         {/* Doctor Card */}

@@ -5,11 +5,13 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { supabase } from '@/lib/supabase.web'
 
-const REMINDER_MINUTES_BEFORE = 60
+const REMINDER_MINUTES_BEFORE = 20
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -46,7 +48,7 @@ export async function scheduleAppointmentReminder(appointment: {
   const notificationId = await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Appointment Reminder',
-      body: `Your appointment with ${doctorLabel} is in 1 hour (${timeStr}). Please be ready!`,
+      body: `Your appointment with ${doctorLabel} is in 20 minutes (${timeStr}). Please be ready!`,
       data: { appointmentId: appointment.id },
       sound: true,
     },

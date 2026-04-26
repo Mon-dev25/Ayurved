@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase.web'
 const TINT = '#6050D0'
 const TINT_LIGHT = '#E0E0F0'
 const DANGER = '#EF4444'
-const DAY_LABELS = ['S', 'S', 'M', 'T', 'W', 'T', 'F']
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -49,9 +49,11 @@ function parseTimeLabel(label: string): { hours: number; minutes: number } {
 }
 
 function formatTime(iso: string) {
+  // Shift UTC timestamp to IST (UTC+5:30) and read with UTC methods
   const d = new Date(iso)
-  let h = d.getHours()
-  const m = d.getMinutes()
+  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000)
+  let h = ist.getUTCHours()
+  const m = ist.getUTCMinutes()
   const period = h >= 12 ? 'PM' : 'AM'
   if (h > 12) h -= 12
   if (h === 0) h = 12
@@ -74,7 +76,12 @@ export default function ManageSlotsScreen() {
   const bgColor = useThemeColor({}, 'background')
   const subtextColor = useThemeColor({}, 'icon')
 
-  const today = new Date()
+  // Use IST (UTC+5:30) for today so past-day and today-highlight are correct in India
+  const today = (() => {
+    const now = new Date()
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60_000
+    return new Date(utcMs + 5.5 * 60 * 60_000)
+  })()
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
@@ -107,6 +114,23 @@ export default function ManageSlotsScreen() {
 
   const isToday = (day: number) =>
     viewYear === today.getFullYear() && viewMonth === today.getMonth() && day === today.getDate()
+
+  const startTimeOptions = useMemo(() => {
+    const isSelectedToday =
+      selectedDay !== null &&
+      viewYear === today.getFullYear() &&
+      viewMonth === today.getMonth() &&
+      selectedDay === today.getDate()
+
+    if (!isSelectedToday) return TIME_OPTIONS
+
+    // Filter out times that are <= current IST time
+    const currentMinutes = today.getHours() * 60 + today.getMinutes()
+    return TIME_OPTIONS.filter((label) => {
+      const { hours, minutes } = parseTimeLabel(label)
+      return hours * 60 + minutes > currentMinutes
+    })
+  }, [selectedDay, viewYear, viewMonth, today])
 
   const endTimeOptions = useMemo(() => {
     if (!rangeStart) return []
@@ -144,8 +168,8 @@ export default function ManageSlotsScreen() {
     setSlots([])
 
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const dayStart = `${dateStr}T00:00:00`
-    const dayEnd = `${dateStr}T23:59:59`
+    const dayStart = `${dateStr}T00:00:00+05:30`
+    const dayEnd = `${dateStr}T23:59:59+05:30`
 
     const { data } = await supabase
       .from('doctor_slots')
@@ -224,8 +248,8 @@ export default function ManageSlotsScreen() {
       const eH = Math.floor((m + 30) / 60)
       const eM = (m + 30) % 60
 
-      const startTs = `${dateStr}T${String(sH).padStart(2, '0')}:${String(sM).padStart(2, '0')}:00`
-      const endTs = `${dateStr}T${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}:00`
+      const startTs = `${dateStr}T${String(sH).padStart(2, '0')}:${String(sM).padStart(2, '0')}:00+05:30`
+      const endTs = `${dateStr}T${String(eH).padStart(2, '0')}:${String(eM).padStart(2, '0')}:00+05:30`
       rows.push({ doctor_id: doctorId, start_ts: startTs, end_ts: endTs, status: 'available' })
     }
 
@@ -498,7 +522,7 @@ export default function ManageSlotsScreen() {
               {pickerField === 'from' ? 'Select Start Time' : 'Select End Time'}
             </Text>
             <FlatList
-              data={pickerField === 'to' ? endTimeOptions : TIME_OPTIONS}
+              data={pickerField === 'to' ? endTimeOptions : startTimeOptions}
               keyExtractor={(item) => item}
               showsVerticalScrollIndicator={false}
               style={styles.modalList}

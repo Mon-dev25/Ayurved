@@ -8,6 +8,7 @@ export type AuthData = {
   isLoading: boolean
   isLoggedIn: boolean
   role?: UserRole | null
+  profileLoaded: boolean
   refreshProfile: () => Promise<void>
 }
 
@@ -17,6 +18,7 @@ export const AuthContext = createContext<AuthData>({
   isLoading: true,
   isLoggedIn: false,
   role: null,
+  profileLoaded: false,
   refreshProfile: async () => {},
 })
 

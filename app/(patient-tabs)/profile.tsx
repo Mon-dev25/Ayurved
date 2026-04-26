@@ -1,11 +1,14 @@
 import { useAuthContext } from '@/hooks/use-auth-context'
+import { getFeatureDeckApiKey } from '@/lib/featuredeck-config'
 import { supabase } from '@/lib/supabase.web'
+import { FeatureDeck } from '@featuredeck/react-native'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +25,7 @@ type MenuItem = {
   icon: React.ComponentProps<typeof MaterialIcons>['name']
   label: string
   route?: string
+  action?: () => void
 }
 
 const ACCOUNT_ITEMS: MenuItem[] = [
@@ -32,6 +36,16 @@ const SETTING_ITEMS: MenuItem[] = [
   { key: 'password', icon: 'lock-outline', label: 'Login & Password', route: '/change-password' },
   { key: 'privacy', icon: 'shield', label: 'Privacy Settings', route: '/privacy-settings' },
   { key: 'help', icon: 'help-outline', label: 'Help & Support', route: '/help-support' },
+  ...(getFeatureDeckApiKey()
+    ? [
+        {
+          key: 'featuredeck',
+          icon: 'lightbulb-outline' as const,
+          label: 'Feature requests & roadmap',
+          action: () => FeatureDeck.openFeatureBoard(),
+        },
+      ]
+    : []),
 ]
 
 export default function PatientProfileScreen() {
@@ -40,8 +54,8 @@ export default function PatientProfileScreen() {
   const insets = useSafeAreaInsets()
   const [editing, setEditing] = useState(false)
   const [fullName, setFullName] = useState(profile?.full_name ?? '')
-  const [email, setEmail] = useState(profile?.email ?? '')
   const [saving, setSaving] = useState(false)
+  const [logoutVisible, setLogoutVisible] = useState(false)
 
   const handleSignOut = async () => {
     await supabase.auth.signOut({ scope: 'local' })
@@ -50,7 +64,6 @@ export default function PatientProfileScreen() {
 
     const handleEdit = () => {
     setFullName(profile?.full_name ?? '')
-    setEmail(profile?.email ?? '')
     setEditing(true)
   }
 
@@ -67,7 +80,7 @@ export default function PatientProfileScreen() {
       setSaving(true)
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: fullName.trim(), email: email.trim() })
+        .update({ full_name: fullName.trim() })
         .eq('id', profile.id)
       setSaving(false)
   
@@ -83,7 +96,10 @@ export default function PatientProfileScreen() {
     <Pressable
       key={item.key}
       style={styles.menuRow}
-      onPress={() => item.route && router.navigate(item.route as any)}
+      onPress={() => {
+        if (item.action) item.action()
+        else if (item.route) router.navigate(item.route as any)
+      }}
     >
       <View style={styles.menuLeft}>
         <View style={styles.menuIconWrap}>
@@ -140,16 +156,6 @@ export default function PatientProfileScreen() {
                             onChangeText={setFullName}
                             autoCapitalize="words"
                           />
-                          <Text style={styles.fieldLabel}>Email</Text>
-                          <TextInput
-                            style={styles.input}
-                            placeholder="Email address"
-                            placeholderTextColor="#9CA3AF"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                          />
                           <View style={styles.formActions}>
                             <Pressable style={styles.cancelBtn} onPress={handleCancel}>
                               <Text style={styles.cancelText}>Cancel</Text>
@@ -187,12 +193,30 @@ export default function PatientProfileScreen() {
           </View>
 
           {/* Sign Out */}
-          <Pressable style={styles.signOutBtn} onPress={handleSignOut}>
+          <Pressable style={styles.signOutBtn} onPress={() => setLogoutVisible(true)}>
             <MaterialIcons name="logout" size={20} color="#EF4444" />
             <Text style={styles.signOutText}>Sign Out</Text>
           </Pressable>
         </ScrollView>
       </View>
+
+      <Modal visible={logoutVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <MaterialIcons name="logout" size={32} color="#EF4444" />
+            <Text style={styles.modalTitle}>Sign Out</Text>
+            <Text style={styles.modalMsg}>Are you sure you want to sign out?</Text>
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalCancel} onPress={() => setLogoutVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={styles.modalConfirm} onPress={handleSignOut}>
+                <Text style={styles.modalConfirmText}>Sign Out</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }
@@ -396,5 +420,63 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginTop: 4,
+  },
+  modalMsg: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+    marginTop: 4,
+  },
+  modalCancel: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  modalConfirm: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  modalConfirmText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
 })

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase.web";
 WebBrowser.maybeCompleteAuthSession();
 
 const redirectTo = makeRedirectUri();
+console.log("redirectTo:", redirectTo);
 
 export async function signInWithProvider(
   provider: "google" | "facebook" | "twitter",

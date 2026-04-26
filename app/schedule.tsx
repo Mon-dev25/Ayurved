@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase.web'
 
 const TINT = '#6050D0'
 const TINT_LIGHT = '#E0E0F0'
-const DAY_LABELS = ['S', 'S', 'M', 'T', 'W', 'T', 'F']
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -44,9 +44,11 @@ type CalendarView = {
 }
 
 function formatTime(iso: string) {
+  // Shift UTC timestamp to IST (UTC+5:30) and read with UTC methods
   const d = new Date(iso)
-  let h = d.getHours()
-  const m = d.getMinutes()
+  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000)
+  let h = ist.getUTCHours()
+  const m = ist.getUTCMinutes()
   const period = h >= 12 ? 'PM' : 'AM'
   if (h > 12) h -= 12
   if (h === 0) h = 12
@@ -54,11 +56,12 @@ function formatTime(iso: string) {
 }
 
 function formatFullDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
+  return new Date(iso).toLocaleDateString('en-IN', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric',
+    timeZone: 'Asia/Kolkata',
   })
 }
 
@@ -120,7 +123,11 @@ export default function ScheduleScreen() {
   const bgColor = useThemeColor({}, 'background')
   const subtextColor = useThemeColor({}, 'icon')
 
-  const today = useMemo(() => new Date(), [])
+  const today = useMemo(() => {
+    const now = new Date()
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60_000
+    return new Date(utcMs + 5.5 * 60 * 60_000)
+  }, [])
   const todayDate = today.getDate()
   const todayMonth = today.getMonth()
   const todayYear = today.getFullYear()
@@ -199,10 +206,11 @@ export default function ScheduleScreen() {
     setSlots([])
 
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const dayEnd = `${dateStr}T23:59:59`
+    const dayEnd = `${dateStr}T23:59:59+05:30`
 
     const isViewingToday = viewYear === todayYear && viewMonth === todayMonth && day === todayDate
-    const dayStart = isViewingToday ? new Date().toISOString() : `${dateStr}T00:00:00`
+    // For today, start from current UTC time so past slots are hidden; otherwise start of IST day
+    const dayStart = isViewingToday ? new Date().toISOString() : `${dateStr}T00:00:00+05:30`
 
     const { data, error } = await supabase
       .from('doctor_slots')
@@ -297,13 +305,17 @@ export default function ScheduleScreen() {
 
     setBooking(true)
 
-    const { error } = await supabase.from('appointments').insert({
-      patient_id: profile.id,
-      doctor_id: selectedSlot.doctor_id,
-      slot_id: selectedSlot.id,
-      scheduled_at: selectedSlot.start_ts,
-      status: 'booked',
-    })
+    const { data: inserted, error } = await supabase
+      .from('appointments')
+      .insert({
+        patient_id: profile.id,
+        doctor_id: selectedSlot.doctor_id,
+        slot_id: selectedSlot.id,
+        scheduled_at: selectedSlot.start_ts,
+        status: 'booked',
+      })
+      .select('id')
+      .single()
 
     if (error) {
       setBooking(false)
@@ -317,7 +329,7 @@ export default function ScheduleScreen() {
         .select('id', { count: 'exact', head: true })
         .eq('slot_id', selectedSlot.id),
       scheduleAppointmentReminder({
-        id: Date.now(),
+        id: inserted.id,
         scheduled_at: selectedSlot.start_ts,
         doctor_name: selectedDoctor?.full_name,
       }),
@@ -333,7 +345,7 @@ export default function ScheduleScreen() {
     setBooking(false)
     setSelectedSlot(null)
     setActiveBooking({
-      id: Date.now(),
+      id: inserted.id,
       slot_id: selectedSlot.id,
       scheduled_at: selectedSlot.start_ts,
       status: 'booked',

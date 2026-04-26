@@ -1,8 +1,6 @@
-import { type UserRole } from '@/hooks/use-auth-context'
 import { signInWithProvider } from '@/lib/social-auth'
 import { supabase } from '@/lib/supabase.web'
 import AntDesign from '@expo/vector-icons/AntDesign'
-import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useState } from 'react'
 import {
   ActivityIndicator,
@@ -30,7 +28,6 @@ export default function ModalScreen() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState<UserRole>('patient')
   const [loading, setLoading] = useState(false)
 
   const resetFields = () => {
@@ -38,7 +35,6 @@ export default function ModalScreen() {
     setPassword('')
     setConfirmPassword('')
     setFullName('')
-    setRole('patient')
   }
 
   const toggleMode = () => {
@@ -84,10 +80,11 @@ export default function ModalScreen() {
     }
 
     setLoading(true)
+    // const emailRedirectTo = Linking.createURL('/auth-callback')
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName || undefined, role } },
+      options: { data: { full_name: fullName || undefined }},
     })
 
     if (error) {
@@ -97,15 +94,22 @@ export default function ModalScreen() {
     }
 
     if (data.user) {
-      await supabase.from('profiles').upsert({ id: data.user.id, role, full_name: fullName || null })
-      if (role === 'doctor') await supabase.from('doctors').upsert({ id: data.user.id })
-      if (role === 'patient') await supabase.from('patients').upsert({ id: data.user.id })
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        full_name: fullName || null,
+        email,
+      })
     }
 
     setLoading(false)
 
     if (!data.session) {
-      Alert.alert('Check your email', 'A confirmation link has been sent to your email address.')
+      Alert.alert(
+        'Verify your email',
+        'A confirmation link has been sent to your email. Please verify it, then sign in.',
+        [{ text: 'OK', onPress: () => { resetFields(); setMode('signin') } }]
+      )
+      return
     }
     resetFields()
   }
@@ -118,52 +122,24 @@ export default function ModalScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Center wrapper */}
           <View style={styles.card}>
-
-            {/* Back button */}
-            {mode === 'signup' && (
-              <Pressable onPress={toggleMode} style={styles.backBtn} hitSlop={8}>
-                <MaterialIcons name="arrow-back" size={24} color="#1A1A2E" />
-              </Pressable>
-            )}
-
-            {/* Logo */}
             <Text style={styles.logoText}>AYUR</Text>
 
-            {/* Title */}
             <Text style={styles.title}>
               {mode === 'signin' ? 'Login to your Account' : 'Create your Account'}
             </Text>
 
-            {/* Form */}
             <View style={styles.form}>
               {mode === 'signup' && (
-                <>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Full Name"
-                    placeholderTextColor="#9CA3AF"
-                    value={fullName}
-                    onChangeText={setFullName}
-                    autoCapitalize="words"
-                    autoComplete="name"
-                  />
-                  <View style={styles.roleRow}>
-                    <Pressable
-                      style={[styles.roleOption, role === 'patient' && styles.roleOptionActive]}
-                      onPress={() => setRole('patient')}
-                    >
-                      <Text style={[styles.roleText, role === 'patient' && styles.roleTextActive]}>Patient</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.roleOption, role === 'doctor' && styles.roleOptionActive]}
-                      onPress={() => setRole('doctor')}
-                    >
-                      <Text style={[styles.roleText, role === 'doctor' && styles.roleTextActive]}>Doctor</Text>
-                    </Pressable>
-                  </View>
-                </>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name"
+                  placeholderTextColor="#9CA3AF"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  autoCapitalize="words"
+                  autoComplete="name"
+                />
               )}
 
               <TextInput
@@ -212,7 +188,6 @@ export default function ModalScreen() {
               </Pressable>
             </View>
 
-            {/* Divider */}
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>
@@ -221,20 +196,13 @@ export default function ModalScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Social buttons */}
             <View style={styles.socialRow}>
               <Pressable style={styles.socialBtn} onPress={() => handleSocialAuth('google')}>
                 <AntDesign name="google" size={22} color="#EA4335" />
+                <Text style={styles.socialBtnText}>Continue with Google</Text>
               </Pressable>
-              {/* <Pressable style={styles.socialBtn} onPress={() => handleSocialAuth('facebook')}>
-                <Text style={[styles.socialIcon, { color: '#1877F2' }]}>f</Text>
-              </Pressable>
-              <Pressable style={styles.socialBtn} onPress={() => handleSocialAuth('twitter')}>
-                <Text style={[styles.socialIcon, { color: '#1DA1F2' }]}>𝕏</Text>
-              </Pressable> */}
             </View>
 
-            {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>
                 {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
@@ -243,7 +211,6 @@ export default function ModalScreen() {
                 <Text style={styles.footerLink}>{mode === 'signin' ? 'Sign up' : 'Sign in'}</Text>
               </Pressable>
             </View>
-
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -256,18 +223,14 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: {
     flexGrow: 1,
-    justifyContent: 'center',   // vertical center
-    alignItems: 'center',       // horizontal center
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 24,
   },
   card: {
     width: '100%',
     maxWidth: 420,
-    alignItems: 'center',       // center children horizontally
-  },
-  backBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
   },
   logoText: {
     fontSize: 36,
@@ -298,20 +261,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
-  roleRow: { flexDirection: 'row', gap: 12 },
-  roleOption: {
-    flex: 1,
-    height: 52,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  roleOptionActive: { borderColor: TINT, backgroundColor: TINT + '12' },
-  roleText: { fontSize: 15, fontWeight: '500', color: '#9CA3AF' },
-  roleTextActive: { color: TINT, fontWeight: '600' },
   button: {
     height: 52,
     borderRadius: 12,
@@ -324,19 +273,20 @@ const styles = StyleSheet.create({
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, width: '100%' },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#C4C4C4' },
   dividerText: { marginHorizontal: 12, fontSize: 13, color: '#9CA3AF' },
-  socialRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 32 },
+  socialRow: { width: '100%', marginBottom: 32 },
   socialBtn: {
-    width: 96,
-    height: 56,
-    borderRadius: 14,
+    height: 52,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#fff',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
   },
-  socialIcon: { fontSize: 22, fontWeight: '700', color: '#EA4335' },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   footerText: { fontSize: 14, color: '#6B7280' },
   footerLink: { fontSize: 14, fontWeight: '600', color: TINT, textDecorationLine: 'underline' },
+  socialBtnText: { fontSize: 15, fontWeight: '600', color: '#1A1A2E' },
 })

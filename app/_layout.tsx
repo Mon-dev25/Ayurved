@@ -1,22 +1,23 @@
+import { FeatureDeckSync } from '@/components/featuredeck-sync'
+import { SplashScreenController } from '@/components/splash-screen-controller'
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
+import { FeatureDeckProvider } from '@featuredeck/react-native'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import 'react-native-reanimated'
-
-import { SplashScreenController } from '@/components/splash-screen-controller'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { useColorScheme } from '@/hooks/use-color-scheme'
 import AuthProvider from '@/providers/auth-providers'
 import DoctorProvider from '@/providers/doctor-provider'
-
 function RootNavigator() {
-  const { isLoggedIn, role } = useAuthContext()
+  const { isLoggedIn, role, isLoading, profileLoaded } = useAuthContext()
 
+  const ready = !isLoading && (!isLoggedIn || profileLoaded)
+console.log('🧭', { isLoading, isLoggedIn, profileLoaded, role, ready })
   return (
-
     <Stack>
-      <Stack.Protected guard={isLoggedIn && role === 'patient'}>
+      <Stack.Protected guard={ready && isLoggedIn && role === 'patient'}>
         <Stack.Screen name="(patient-tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="schedule" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="appointment-history" options={{ headerShown: false, presentation: 'card' }} />
@@ -28,7 +29,8 @@ function RootNavigator() {
         <Stack.Screen name="article-detail" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="consult" options={{ headerShown: false, presentation: 'card' }} />
       </Stack.Protected>
-      <Stack.Protected guard={isLoggedIn && role === 'doctor'}>
+
+      <Stack.Protected guard={ready && isLoggedIn && role === 'doctor'}>
         <Stack.Screen name="(doctor-tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="manage-slots" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="manage-pricing" options={{ headerShown: false, presentation: 'card' }} />
@@ -37,32 +39,40 @@ function RootNavigator() {
         <Stack.Screen name="privacy-settings-doc" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="posts" options={{ headerShown: false, presentation: 'card' }} />
       </Stack.Protected>
-      <Stack.Protected guard={isLoggedIn}>
+
+      <Stack.Protected guard={ready && isLoggedIn && !role}>
+        <Stack.Screen name="role-select" options={{ headerShown: false }} />
+      </Stack.Protected>
+
+      <Stack.Protected guard={ready && isLoggedIn}>
         <Stack.Screen name="help-support" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen name="notifications" options={{ headerShown: false, presentation: 'card' }} />
       </Stack.Protected>
-      <Stack.Protected guard={!isLoggedIn}>
+
+      <Stack.Protected guard={ready && !isLoggedIn}>
         <Stack.Screen name="modal" options={{ headerShown: false }} />
       </Stack.Protected>
+
+      <Stack.Screen name="loading" options={{ headerShown: false }} />
       <Stack.Screen name="+not-found" />
     </Stack>
-
-
   )
 }
-
 export default function RootLayout() {
   const colorScheme = useColorScheme()
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
-        <DoctorProvider>
-          <SplashScreenController />
-          <RootNavigator />
-          <StatusBar style="auto" />
-        </DoctorProvider>
-      </AuthProvider>
+      <FeatureDeckProvider>
+        <AuthProvider>
+          <FeatureDeckSync />
+          <DoctorProvider>
+            <SplashScreenController />
+            <RootNavigator />
+            <StatusBar style="auto" />
+          </DoctorProvider>
+        </AuthProvider>
+      </FeatureDeckProvider>
     </ThemeProvider>
   )
 }

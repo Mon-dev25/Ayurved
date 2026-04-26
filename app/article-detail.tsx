@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -33,13 +33,11 @@ export default function ArticleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const [article, setArticle] = useState<Article | null>(null)
   const [loading, setLoading] = useState(true)
-  const closing = useRef(false)
-
   const handleClose = useCallback(() => {
-    if (closing.current) return
-    closing.current = true
     if (router.canGoBack()) {
       router.back()
+    } else {
+      router.replace('/articles')
     }
   }, [router])
 

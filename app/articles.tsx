@@ -80,7 +80,7 @@ export default function ArticlesScreen() {
             <Pressable
               key={article.id}
               style={styles.card}
-              onPress={() => router.navigate(`/article-detail?id=${article.id}`)}
+              onPress={() => router.push(`/article-detail?id=${article.id}`)}
             >
               <View style={styles.cardTop}>
                 <View style={styles.badge}>

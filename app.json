@@ -4,24 +4,24 @@
     "slug": "Ayur",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/ayuricon.png",
+    "icon": "./assets/images/ayu.png",
     "scheme": "ayur",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Ayur"
+      "bundleIdentifier": "com.monika.Ayur"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/ayuricon.png",
+        "foregroundImage": "./assets/images/ayu.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.Ayur"
+      "package": "com.monika.Ayur"
     },
     "web": {
       "output": "server",
@@ -32,7 +32,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/ayuricon.png",
+          "image": "./assets/images/ayu.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -42,11 +42,22 @@
         }
       ],
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/ayu.png",
+          "color": "#6050D0",
+          "sounds": []
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "featuredeckApiKey": ""
     }
   }
 }
