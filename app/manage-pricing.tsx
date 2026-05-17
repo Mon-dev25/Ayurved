@@ -1,11 +1,12 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { DEFAULT_PRICING } from '@/hooks/use-doctor-context'
+import { showAppAlert } from '@/lib/app-alert'
 import { supabase } from '@/lib/supabase.web'
 
 const BLUE = '#6050D0'
@@ -56,11 +57,11 @@ export default function ManagePricingScreen() {
     setSaving(false)
 
     if (error) {
-      Alert.alert('Error', error.message)
+      showAppAlert('Error', error.message)
       return
     }
 
-    Alert.alert('Saved', 'Your medicine pricing has been updated.', [
+    showAppAlert('Saved', 'Your medicine pricing has been updated.', [
       { text: 'OK', onPress: () => router.back() },
     ])
   }

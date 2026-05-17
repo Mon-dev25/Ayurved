@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
+import { showAppAlert } from '@/lib/app-alert'
 import { getFeatureDeckApiKey } from '@/lib/featuredeck-config'
 import { supabase } from '@/lib/supabase.web'
 import { FeatureDeck } from '@featuredeck/react-native'
@@ -74,7 +74,7 @@ export default function DoctorProfileScreen() {
 
   const handleSave = async () => {
     if (!fullName.trim()) {
-      Alert.alert('Missing Name', 'Please enter your full name.')
+      showAppAlert('Missing Name', 'Please enter your full name.')
       return
     }
     if (!profile?.id) return
@@ -87,7 +87,7 @@ export default function DoctorProfileScreen() {
     setSaving(false)
 
     if (error) {
-      Alert.alert('Error', error.message)
+      showAppAlert('Error', error.message)
       return
     }
 

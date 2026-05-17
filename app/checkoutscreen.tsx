@@ -1,4 +1,5 @@
-import { Alert, Button } from "react-native";
+import { Button } from "react-native";
+import { showAppAlert } from "@/lib/app-alert";
 import RazorpayCheckout from "react-native-razorpay";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -42,11 +43,11 @@ const openPaymentSheet = async () => {
       };
 
       const data = await RazorpayCheckout.open(options);
-      Alert.alert("Success", `Payment successful!`);
+      showAppAlert("Success", `Payment successful!`);
 
     } catch (error: any) {
       console.log("Full error:", JSON.stringify(error)); // check this
-      Alert.alert("Error", error.description ?? error.message ?? "Payment failed");
+      showAppAlert("Error", error.description ?? error.message ?? "Payment failed");
     }
   };
 

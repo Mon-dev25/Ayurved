@@ -1,13 +1,14 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useRouter } from 'expo-router'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { scheduleAppointmentReminder } from '@/hooks/use-appointment-notifications'
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { useDoctorContext } from '@/hooks/use-doctor-context'
 import { useThemeColor } from '@/hooks/use-theme-color'
+import { showAppAlert } from '@/lib/app-alert'
 import { supabase } from '@/lib/supabase.web'
 
 const TINT = '#6050D0'
@@ -319,7 +320,7 @@ export default function ScheduleScreen() {
 
     if (error) {
       setBooking(false)
-      Alert.alert('Booking Failed', error.message)
+      showAppAlert('Booking Failed', error.message)
       return
     }
 
@@ -354,11 +355,11 @@ export default function ScheduleScreen() {
 
   const handleBook = useCallback(() => {
     if (!selectedDay || !selectedSlot) {
-      Alert.alert('Select date & time', 'Please pick both a date and time slot.')
+      showAppAlert('Select date & time', 'Please pick both a date and time slot.')
       return
     }
     const label = formatTime(selectedSlot.start_ts)
-    Alert.alert(
+    showAppAlert(
       'Confirm Booking',
       `Book appointment on ${MONTH_NAMES[viewMonth]} ${selectedDay}, ${viewYear} at ${label}?`,
       [
@@ -370,7 +371,7 @@ export default function ScheduleScreen() {
 
   const handleCancelBooking = useCallback(() => {
     if (!activeBooking) return
-    Alert.alert(
+    showAppAlert(
       'Cancel Appointment',
       'Are you sure you want to cancel this appointment?',
       [

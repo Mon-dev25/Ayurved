@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -19,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { DEFAULT_PRICING, useDoctorContext } from '@/hooks/use-doctor-context'
+import { showAppAlert } from '@/lib/app-alert'
 import { supabase } from '@/lib/supabase.web'
 
 const BLUE = '#6050D0'
@@ -147,16 +147,16 @@ export default function PlaceOrderScreen() {
         razorpay_payment_id: paymentData.razorpay_payment_id,
       })
 
-      Alert.alert(
+      showAppAlert(
         'Order Placed!',
         `Your order #${order.id} has been placed successfully.`,
         [{ text: 'OK', onPress: () => router.back() }]
       )
     } catch (error: any) {
       if (error.description) {
-        Alert.alert('Payment Failed', error.description)
+        showAppAlert('Payment Failed', error.description)
       } else {
-        Alert.alert('Error', error.message ?? 'Something went wrong')
+        showAppAlert('Error', error.message ?? 'Something went wrong')
       }
     } finally {
       setPlacing(false)

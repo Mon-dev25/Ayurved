@@ -8,6 +8,7 @@ import 'react-native-reanimated'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { useColorScheme } from '@/hooks/use-color-scheme'
+import AppAlertProvider from '@/providers/app-alert-provider'
 import AuthProvider from '@/providers/auth-providers'
 import DoctorProvider from '@/providers/doctor-provider'
 function RootNavigator() {
@@ -65,12 +66,14 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <FeatureDeckProvider>
         <AuthProvider>
-          <FeatureDeckSync />
-          <DoctorProvider>
-            <SplashScreenController />
-            <RootNavigator />
-            <StatusBar style="auto" />
-          </DoctorProvider>
+          <AppAlertProvider>
+            <FeatureDeckSync />
+            <DoctorProvider>
+              <SplashScreenController />
+              <RootNavigator />
+              <StatusBar style="auto" />
+            </DoctorProvider>
+          </AppAlertProvider>
         </AuthProvider>
       </FeatureDeckProvider>
     </ThemeProvider>

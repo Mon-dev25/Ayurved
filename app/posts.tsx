@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
+import { showAppAlert } from '@/lib/app-alert'
 import { supabase } from '@/lib/supabase.web'
 
 const BLUE = '#6050D0'
@@ -64,11 +64,11 @@ export default function PostsScreen() {
 
   const handlePublish = async () => {
     if (!title.trim()) {
-      Alert.alert('Missing Title', 'Please enter a title for your article.')
+      showAppAlert('Missing Title', 'Please enter a title for your article.')
       return
     }
     if (!content.trim()) {
-      Alert.alert('Missing Content', 'Please write some content for your article.')
+      showAppAlert('Missing Content', 'Please write some content for your article.')
       return
     }
     if (!doctorId) return
@@ -84,7 +84,7 @@ export default function PostsScreen() {
     setSaving(false)
 
     if (error) {
-      Alert.alert('Error', error.message)
+      showAppAlert('Error', error.message)
       return
     }
 
@@ -95,7 +95,7 @@ export default function PostsScreen() {
   }
 
   const handleDelete = (id: number) => {
-    Alert.alert('Delete Article', 'Are you sure you want to delete this article?', [
+    showAppAlert('Delete Article', 'Are you sure you want to delete this article?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',

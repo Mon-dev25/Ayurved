@@ -1,10 +1,10 @@
+import { showAppAlert } from '@/lib/app-alert'
 import { signInWithProvider } from '@/lib/social-auth'
 import { supabase } from '@/lib/supabase.web'
 import AntDesign from '@expo/vector-icons/AntDesign'
 import { useState } from 'react'
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -44,22 +44,22 @@ export default function ModalScreen() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert('Missing fields', 'Please enter both email and password.')
+      showAppAlert('Missing fields', 'Please enter both email and password.')
       return
     }
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
-    if (error) Alert.alert('Sign In Failed', error.message)
+    if (error) showAppAlert('Sign In Failed', error.message)
   }
 
   const handleSocialAuth = async (provider: 'google' | 'facebook' | 'twitter') => {
     try {
       setLoading(true)
       const session = await signInWithProvider(provider)
-      if (!session) Alert.alert('Cancelled', 'Sign in was cancelled.')
+      if (!session) showAppAlert('Cancelled', 'Sign in was cancelled.')
     } catch (err: any) {
-      Alert.alert('Auth Failed', err.message ?? 'Something went wrong.')
+      showAppAlert('Auth Failed', err.message ?? 'Something went wrong.')
     } finally {
       setLoading(false)
     }
@@ -67,15 +67,15 @@ export default function ModalScreen() {
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert('Missing fields', 'Please fill in all required fields.')
+      showAppAlert('Missing fields', 'Please fill in all required fields.')
       return
     }
     if (password !== confirmPassword) {
-      Alert.alert('Password mismatch', 'Passwords do not match.')
+      showAppAlert('Password mismatch', 'Passwords do not match.')
       return
     }
     if (password.length < 6) {
-      Alert.alert('Weak password', 'Password must be at least 6 characters.')
+      showAppAlert('Weak password', 'Password must be at least 6 characters.')
       return
     }
 
@@ -89,7 +89,7 @@ export default function ModalScreen() {
 
     if (error) {
       setLoading(false)
-      Alert.alert('Sign Up Failed', error.message)
+      showAppAlert('Sign Up Failed', error.message)
       return
     }
 
@@ -104,7 +104,7 @@ export default function ModalScreen() {
     setLoading(false)
 
     if (!data.session) {
-      Alert.alert(
+      showAppAlert(
         'Verify your email',
         'A confirmation link has been sent to your email. Please verify it, then sign in.',
         [{ text: 'OK', onPress: () => { resetFields(); setMode('signin') } }]

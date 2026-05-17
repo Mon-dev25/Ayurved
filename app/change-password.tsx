@@ -1,9 +1,10 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { showAppAlert } from '@/lib/app-alert'
 import { supabase } from '@/lib/supabase.web'
 
 const BLUE = '#6050D0'
@@ -19,15 +20,15 @@ export default function ChangePasswordScreen() {
 
   const handleSave = async () => {
     if (!newPassword || !confirmPassword) {
-      Alert.alert('Missing fields', 'Please fill in both fields.')
+      showAppAlert('Missing fields', 'Please fill in both fields.')
       return
     }
     if (newPassword.length < 6) {
-      Alert.alert('Weak password', 'Password must be at least 6 characters.')
+      showAppAlert('Weak password', 'Password must be at least 6 characters.')
       return
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Mismatch', 'Passwords do not match.')
+      showAppAlert('Mismatch', 'Passwords do not match.')
       return
     }
 
@@ -36,11 +37,11 @@ export default function ChangePasswordScreen() {
     setLoading(false)
 
     if (error) {
-      Alert.alert('Failed', error.message)
+      showAppAlert('Failed', error.message)
       return
     }
 
-    Alert.alert('Success', 'Your password has been updated.', [
+    showAppAlert('Success', 'Your password has been updated.', [
       { text: 'OK', onPress: () => router.back() },
     ])
   }

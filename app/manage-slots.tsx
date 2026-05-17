@@ -1,11 +1,12 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useRouter } from 'expo-router'
 import { useCallback, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { useAuthContext } from '@/hooks/use-auth-context'
 import { useThemeColor } from '@/hooks/use-theme-color'
+import { showAppAlert } from '@/lib/app-alert'
 import { supabase } from '@/lib/supabase.web'
 
 const TINT = '#6050D0'
@@ -257,11 +258,11 @@ export default function ManageSlotsScreen() {
     setSaving(false)
 
     if (error) {
-      Alert.alert('Failed', error.message)
+      showAppAlert('Failed', error.message)
       return
     }
 
-    Alert.alert('Done', `${rows.length} slots created for ${MONTH_NAMES[viewMonth].slice(0, 3)} ${selectedDay}.`)
+    showAppAlert('Done', `${rows.length} slots created for ${MONTH_NAMES[viewMonth].slice(0, 3)} ${selectedDay}.`)
     setRangeStart(null)
     setRangeEnd(null)
     fetchSlots(selectedDay)
@@ -269,10 +270,10 @@ export default function ManageSlotsScreen() {
 
   const handleDeleteSlot = (slot: Slot) => {
     if (slot.booked_count > 0) {
-      Alert.alert('Cannot Delete', `This slot has ${slot.booked_count} booking(s). Cancel the appointments first.`)
+      showAppAlert('Cannot Delete', `This slot has ${slot.booked_count} booking(s). Cancel the appointments first.`)
       return
     }
-    Alert.alert('Delete Slot', `Remove ${formatTime(slot.start_ts)} – ${formatTime(slot.end_ts)}?`, [
+    showAppAlert('Delete Slot', `Remove ${formatTime(slot.start_ts)} – ${formatTime(slot.end_ts)}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -289,11 +290,11 @@ export default function ManageSlotsScreen() {
     if (!selectedDay || !doctorId) return
     const unbookedSlots = slots.filter((s) => s.booked_count === 0)
     if (unbookedSlots.length === 0) {
-      Alert.alert('Cannot Clear', 'All slots have bookings and cannot be deleted.')
+      showAppAlert('Cannot Clear', 'All slots have bookings and cannot be deleted.')
       return
     }
 
-    Alert.alert('Clear Unbooked Slots', `Remove ${unbookedSlots.length} slot(s) with no bookings?`, [
+    showAppAlert('Clear Unbooked Slots', `Remove ${unbookedSlots.length} slot(s) with no bookings?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Clear',
